@@ -5,6 +5,8 @@ building private, user-owned knowledge bases. Users can upload documents, ask
 follow-up questions in persistent conversations, stream answers in real time,
 and inspect the exact source passages used for each answer.
 
+![Grounded dashboard](img/grounded-dashboard.png)
+
 ## Highlights
 
 - JWT authentication and per-user data isolation
