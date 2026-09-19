@@ -1,8 +1,9 @@
 import uuid
 from datetime import UTC, datetime
+from typing import Any, Literal
 
-from pydantic import EmailStr
-from sqlalchemy import DateTime
+from pydantic import EmailStr, field_validator
+from sqlalchemy import JSON, DateTime, Text
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -57,6 +58,10 @@ class User(UserBase, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore
     )
     items: list[Item] = Relationship(back_populates="owner", cascade_delete=True)
+    knowledge_bases: list[KnowledgeBase] = Relationship(
+        back_populates="owner",
+        cascade_delete=True,
+    )
 
 
 # Properties to return via API, id is always required
@@ -110,6 +115,294 @@ class ItemPublic(ItemBase):
 class ItemsPublic(SQLModel):
     data: list[ItemPublic]
     count: int
+
+
+class KnowledgeBaseBase(SQLModel):
+    name: str = Field(min_length=1, max_length=128)
+    description: str | None = Field(default=None, max_length=1000)
+
+
+class KnowledgeBaseCreate(KnowledgeBaseBase):
+    pass
+
+
+class KnowledgeBaseUpdate(SQLModel):
+    name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+    )
+    description: str | None = Field(
+        default=None,
+        max_length=1000,
+    )
+
+
+class KnowledgeBase(KnowledgeBaseBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    owner_id: uuid.UUID = Field(
+        foreign_key="user.id",
+        nullable=False,
+        index=True,
+        ondelete="CASCADE",
+    )
+
+    owner: User | None = Relationship(back_populates="knowledge_bases")
+
+    documents: list[KnowledgeDocument] = Relationship(
+        back_populates="knowledge_base",
+        cascade_delete=True,
+    )
+
+    conversations: list[Conversation] = Relationship(
+        back_populates="knowledge_base",
+        cascade_delete=True,
+    )
+
+
+class KnowledgeBasePublic(KnowledgeBaseBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+    created_at: datetime
+
+
+class KnowledgeBasesPublic(SQLModel):
+    data: list[KnowledgeBasePublic]
+    count: int
+
+
+class ConversationBase(SQLModel):
+    title: str = Field(
+        default="New conversation",
+        min_length=1,
+        max_length=200,
+    )
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str) -> str:
+        title = value.strip()
+
+        if not title:
+            raise ValueError("Conversation title must not be blank")
+
+        return title
+
+
+class ConversationCreate(ConversationBase):
+    pass
+
+
+class ConversationUpdate(SQLModel):
+    title: str = Field(
+        min_length=1,
+        max_length=200,
+    )
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str) -> str:
+        title = value.strip()
+
+        if not title:
+            raise ValueError("Conversation title must not be blank")
+
+        return title
+
+
+class Conversation(ConversationBase, table=True):
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+    )
+
+    knowledge_base_id: uuid.UUID = Field(
+        foreign_key="knowledgebase.id",
+        nullable=False,
+        index=True,
+        ondelete="CASCADE",
+    )
+
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    updated_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    knowledge_base: KnowledgeBase | None = Relationship(
+        back_populates="conversations",
+    )
+
+    messages: list[ChatMessage] = Relationship(
+        back_populates="conversation",
+        cascade_delete=True,
+    )
+
+
+class ConversationPublic(ConversationBase):
+    id: uuid.UUID
+    knowledge_base_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationsPublic(SQLModel):
+    data: list[ConversationPublic]
+    count: int
+
+
+class ChatMessage(SQLModel, table=True):
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+    )
+
+    conversation_id: uuid.UUID = Field(
+        foreign_key="conversation.id",
+        nullable=False,
+        index=True,
+        ondelete="CASCADE",
+    )
+
+    role: str = Field(max_length=16)
+
+    content: str = Field(
+        sa_type=Text,
+    )
+
+    sources: list[dict[str, Any]] = Field(
+        default_factory=list,
+        sa_type=JSON,
+    )
+
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    conversation: Conversation | None = Relationship(
+        back_populates="messages",
+    )
+
+
+class ChatMessagePublic(SQLModel):
+    id: uuid.UUID
+    conversation_id: uuid.UUID
+    role: Literal["user", "assistant"]
+    content: str
+    sources: list[dict[str, Any]]
+    created_at: datetime
+
+
+class ChatMessagesPublic(SQLModel):
+    data: list[ChatMessagePublic]
+    count: int
+
+
+class KnowledgeDocumentBase(SQLModel):
+    original_filename: str = Field(min_length=1, max_length=255)
+    content_type: str | None = Field(default=None, max_length=100)
+    size_bytes: int = Field(default=0, ge=0)
+
+
+class KnowledgeDocument(KnowledgeDocumentBase, table=True):
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+    )
+
+    knowledge_base_id: uuid.UUID = Field(
+        foreign_key="knowledgebase.id",
+        nullable=False,
+        index=True,
+        ondelete="CASCADE",
+    )
+
+    storage_key: str = Field(max_length=500)
+    content_hash: str | None = Field(
+        default=None,
+        max_length=64,
+        index=True,
+    )
+    status: str = Field(default="uploaded", max_length=32)
+    chunk_count: int = Field(default=0, ge=0)
+    error_message: str | None = Field(default=None, max_length=2000)
+
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+    knowledge_base: KnowledgeBase | None = Relationship(
+        back_populates="documents",
+    )
+
+
+class KnowledgeDocumentPublic(KnowledgeDocumentBase):
+    id: uuid.UUID
+    knowledge_base_id: uuid.UUID
+    status: str
+    chunk_count: int
+    error_message: str | None
+    created_at: datetime
+
+
+class KnowledgeDocumentsPublic(SQLModel):
+    data: list[KnowledgeDocumentPublic]
+    count: int
+
+
+class KnowledgeSearchResult(SQLModel):
+    page_content: str
+    source_metadata: dict[
+        str,
+        str | int | float | bool | None,
+    ]
+
+
+class KnowledgeSearchResults(SQLModel):
+    data: list[KnowledgeSearchResult]
+    count: int
+
+
+class KnowledgeAskRequest(SQLModel):
+    question: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+    k: int = Field(default=4, ge=1, le=20)
+
+    @field_validator("question")
+    @classmethod
+    def normalize_question(
+        cls,
+        value: str,
+    ) -> str:
+        question = value.strip()
+
+        if not question:
+            raise ValueError("Question must not be blank")
+
+        return question
+
+
+class KnowledgeAnswerSource(KnowledgeSearchResult):
+    citation: int = Field(ge=1)
+
+
+class KnowledgeAskResponse(SQLModel):
+    answer: str
+    sources: list[KnowledgeAnswerSource]
 
 
 # Generic message

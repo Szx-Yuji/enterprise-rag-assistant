@@ -1,4 +1,5 @@
 import warnings
+from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import (
@@ -25,6 +26,19 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     FRONTEND_HOST: str = "http://localhost:5173"
     FASTAPI_ENV: Literal["development"] | None = None
+
+    DOCUMENT_STORAGE_DIR: Path = Path("/app/storage/documents")
+    MAX_DOCUMENT_SIZE_BYTES: int = 20 * 1024 * 1024
+
+    DEEPSEEK_API_KEY: str | None = None
+    DEEPSEEK_BASE_URL: str = ""
+    DEEPSEEK_MODEL: str = "deepseek-v4-flash"
+
+    ZHIPUAI_API_KEY: str | None = None
+    ZHIPUAI_EMBEDDING_BASE_URL: str = "https://open.bigmodel.cn/api/paas/v4/"
+    ZHIPUAI_EMBEDDING_MODEL: str = "embedding-3"
+
+    CHROMA_PERSIST_DIRECTORY: Path = Path("/app/storage/chroma")
 
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None
