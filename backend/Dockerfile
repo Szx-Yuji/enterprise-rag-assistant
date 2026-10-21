@@ -1,15 +1,16 @@
-FROM oven/bun:1 AS frontend-build
+FROM oven/bun:1.4.2 AS frontend-build
 
 WORKDIR /app
 
 COPY package.json bun.lock /app/
 COPY frontend/package.json /app/frontend/
+COPY packages/react-email/package.json /app/packages/react-email/
 
-WORKDIR /app/frontend
-
-RUN bun install
+RUN bun install --frozen-lockfile --ignore-scripts --filter frontend
 
 COPY ./frontend /app/frontend
+
+WORKDIR /app/frontend
 
 ARG VITE_API_URL=
 
@@ -22,7 +23,7 @@ ENV PYTHONUNBUFFERED=1
 
 # Install uv
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
-COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.28 /uv /uvx /bin/
 
 # Compile bytecode
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode

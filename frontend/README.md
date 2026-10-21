@@ -4,14 +4,14 @@ The frontend is built with [Vite](https://vitejs.dev/), [React](https://react.de
 
 ## Requirements
 
-- [Bun](https://bun.sh/)
+- [Bun 1.4.2](https://bun.sh/)
 
 ## Quick Start
 
 From the project root, install the dependencies and start the frontend development server:
 
 ```bash
-bun install
+bun ci --ignore-scripts
 bun run dev
 ```
 

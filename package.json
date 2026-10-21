@@ -1,6 +1,11 @@
 {
   "name": "enterprise-rag-assistant",
   "private": true,
+  "packageManager": "bun@1.4.2",
+  "trustedDependencies": [],
+  "overrides": {
+    "js-yaml": "4.3.2"
+  },
   "workspaces": [
     "frontend",
     "packages/*"

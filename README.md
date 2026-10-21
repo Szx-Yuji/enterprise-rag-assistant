@@ -90,7 +90,8 @@ instructions, helping reduce prompt-injection risk from uploaded documents.
 
 Host-side development commands such as client generation and static checks also
 require [uv](https://docs.astral.sh/uv/) and [Bun](https://bun.sh/). Install the
-workspace dependencies once with `uv sync` and `bun install`.
+workspace dependencies once with `uv sync --frozen` and
+`bun ci --ignore-scripts` using Bun 1.4.2.
 
 ### 1. Configure the environment
 
@@ -274,6 +275,8 @@ unchanged on an internet-facing server: remove the Adminer routes or protect
 them with an IP allowlist and additional authentication.
 
 ## Security Notes
+
+See [dependency security](SECURITY.md) for audit commands and the reviewed Chroma advisory exceptions.
 
 - Keep `.env` and API keys out of version control.
 - Replace all sample passwords before any public deployment.
