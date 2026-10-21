@@ -282,4 +282,5 @@ them with an IP allowlist and additional authentication.
 
 ## License
 
-This project is based on the MIT-licensed Full Stack FastAPI Template.
+Distributed under the [MIT license](LICENSE). Original copyright notices and
+license terms are retained in LICENSE.

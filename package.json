@@ -1,5 +1,5 @@
 {
-  "name": "fastapi-full-stack-template",
+  "name": "enterprise-rag-assistant",
   "private": true,
   "workspaces": [
     "frontend",

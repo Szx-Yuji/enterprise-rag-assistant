@@ -8,5 +8,15 @@ backend/app/frontend/
 /blob-report/
 /playwright/.cache/
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+.venv/
+backend/storage/
+storage/
+*.db
+*.db-*
 .idea/
 .DS_Store
